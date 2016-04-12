@@ -1,4 +1,4 @@
-function  [FWPTtrue,FWPTscatter,FWPTrandoms,FWAC,wcc,counts] = buildSimFullData(...
+function  [FWPTtrue,FWPTscatter,FWPTrandoms,FWAC,wcc,counts] = buildSimFullData( ...
     refPT,muCT,psf,vox,countScale,SF,RF)
 %"buildSimData"
 %   Builds un-noised PET projection data and attenuation projections
@@ -53,7 +53,7 @@ for i = 1:vox.petSim.nxn(3)
         CTmuTmp0 = zeros(vox.petSim.nxn(1:2));
         CTmuTmp  = imresize(muCT(:,:,i),vox.ct.xyz(1)/vox.petSim.xyz(1),'cubic');
         
-        xA = max(1,round(( vox.petSim.nxn(1) - size(CTmuTmp,2) )/2) + 1);
+        xA = max(1,round(( vox.petSim.nxn(2) - size(CTmuTmp,2) )/2) + 1);
         xB = xA + size(CTmuTmp,2) - 1;
         yA = max(1,round(( vox.petSim.nxn(1) - size(CTmuTmp,1) )/2) + 1);
         yB = yA + size(CTmuTmp,1) - 1;
@@ -74,16 +74,16 @@ countsPET = countScale * vox.pet.vol/1000 * (vox.pet.nxn(1)/vox.petSim.nxn(1))^2
 % Build blurring kernels
 % PSF kernel
 sigma = psf * vox.petSim.nxn(1) / vox.pet.fov(1);
-sigMat = max( ceil(3*sigma) , 5 );
+sigMat = max( ceil(3*sigma), 5 );
 if (mod(sigMat,2) == 0), sigMat = sigMat + 1; end
 PSF  = fspecial('gaussian', sigMat, sigma / ( 2*sqrt(2*log(2)) ) );
 
 % scatter kernel
 scatterFWHM = 200;
 s_sigma = scatterFWHM * vox.petSim.nxn(1) / vox.pet.fov(1);
-sigMat = max( ceil(3*s_sigma) , 3 );
+sigMat = max( ceil(3*s_sigma) , 3 ); 
 if (mod(sigMat,2) == 0), sigMat = sigMat + 1; end
-scatterK = fspecial('gaussian',sigMat, s_sigma / ( 2*sqrt(2*log(2)) ) );
+scatterK = fspecial('gaussian', sigMat, s_sigma / ( 2*sqrt(2*log(2)) ) );
 
 % Blur images
 PTscatter = zeros(size(PTtrue));
@@ -113,7 +113,8 @@ for i = 1:vox.petSim.rtz(3)
     FWPTtrueNAC(:,:,i) = radon( PTtrue(:,:,i),    PHI );
     FWPTscatter(:,:,i) = radon( PTscatter(:,:,i), PHI );
 end
-radA = floor( (vox.petSim.rtz(1) - vox.petSim.nxn(1))/2 ) + 1; radB = vox.petSim.rtz(1) - radA - 1;
+radA = floor( (vox.petSim.rtz(1) - vox.petSim.nxn(1))/2 ) + 1; 
+radB = vox.petSim.rtz(1) - radA - 1;
 FWPTrandoms(radA:radB,:,:) = 1;
 FWPTtrue = FWPTtrueNAC.*FWAC;
 
@@ -134,7 +135,7 @@ counts.true    = countsTrue;
 counts.scatter = countsScatter;
 counts.randoms = countsRandoms;
 counts.NEC     = counts.true^2 / counts.total;
-counts.ID      = counts.NEC / prod(vox.petOut.nxn);
+counts.ID      = counts.NEC / vox.petOut.sup;
 
 counts
 end

@@ -173,7 +173,7 @@ counts.true    = countsTrue;
 counts.scatter = countsScatter;
 counts.randoms = countsRandoms;
 counts.NEC     = counts.true^2 / counts.total;
-counts.ID      = counts.NEC / prod(vox.petOut.nxn);
+counts.ID      = counts.NEC / vox.petOut.sup;
 
 counts
 
