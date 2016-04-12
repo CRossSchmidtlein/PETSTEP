@@ -35,14 +35,18 @@ function [nFWPTtotal,nFWPTtotalB,counts] = ...
 %
 %% Builds noised data 
 
+FWTUtotal   = FWTUtrue + FWTUscatter + FWTUrandoms;
+
 statPack = exist('poissrnd9','file');
 if (statPack == 2)
+    nFWPTtotal   = poissrnd(FWTUtotal);
     nFWPTtrue    = poissrnd(FWTUtrue);
     nFWPTscatter = poissrnd(FWTUscatter);
     nFWPTrandoms = poissrnd(FWTUrandoms);
 else
     jeffPack = exist('poisson_cerr','file');
     if (jeffPack == 2)
+        nFWPTtotal   = poisson_cerr(FWTUtotal);
         nFWPTtrue    = poisson_cerr(FWTUtrue);
         nFWPTscatter = poisson_cerr(FWTUscatter);
         nFWPTrandoms = poisson_cerr(FWTUrandoms);
@@ -57,6 +61,7 @@ else
         error('ERROR: !!! NO POISSON RANDOM GENERATOR !!!');
     end
 end
+nFWPTtotal(nFWPTtotal     < 0) = 0;
 nFWPTtrue(nFWPTtrue       < 0) = 0;
 nFWPTscatter(nFWPTscatter < 0) = 0;
 nFWPTrandoms(nFWPTrandoms < 0) = 0;

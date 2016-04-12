@@ -38,14 +38,22 @@ indexS = planC{end};
 
 simX
 %% input parameters
-PTscanNum = simX.PTscanNum;        % PET scan's CERR ID : should be automated
-CTscanNum = simX.CTscanNum;        % CT  scan's CERR ID : should be automated
+% Scan ID
+scanID = planC{indexS.scan}(1).scanInfo(1).DICOMHeaders.Modality;
+if (strcmp('CT',scanID) == 1)
+  CTscanNum = 1;        % CT  scan's CERR ID 
+  PTscanNum = 2;        % PET scan's CERR ID 
+else
+  CTscanNum = 2;        % CT  scan's CERR ID 
+  PTscanNum = 1;        % PET scan's CERR ID 
+end
 
 % Tumor parameters
 maxSUV = simX.maxSUV;               % Set Max SUV of the lesion
 maxTRAST = simX.maxTRAST;           % Set Max contrast of the lesion in CT
 USE_ADDITIVE  = simX.USE_ADDITIVE;  % Add the tumor to PET/CT backgrounds otherwise replaces
 minRegionSize = simX.minRegionSize; % removes small stray contour masks
+USE_CONTOUR = simX.USE_CONTOUR;
 
 % Count Data
 countScale = simX.dwellTime*simX.activityConc*simX.countSens; % Sets mean number of counts per active voxel
@@ -134,7 +142,11 @@ vox.petSim.fov = vox.petSim.nxn.*vox.petSim.xyz;
 vox.petSim.r   = 2*ceil(norm( vox.petSim.nxn(1:2) - floor(( vox.petSim.nxn(1:2)-1 )/2)-1)) + 3;
 vox.petSim.tan = tanBin;
 vox.petSim.rtz = [ 2*ceil(norm( vox.petSim.nxn(1:2) - floor(( vox.petSim.nxn(1:2)-1 )/2)-1)) + 3 ...
-    tanBin vox.pet.nxn(3) ];
+                   tanBin vox.pet.nxn(3) ];
+tmpPTmask = PT;
+tmpPTmask(tmpPTmask < 0.1) = 0;
+tmpPTmask(tmpPTmask > 0) = 1;
+vox.petSim.sup = numel(nonzeros(tmpPTmask));
 
 % Get Output Image PET voxel size in mm and data
 vox.petOut.xyz = vox.pet.xyz .* [ vox.pet.nxn(1:2)/simSize 1 ];
@@ -142,11 +154,23 @@ vox.petOut.vol = prod(vox.petOut.xyz);
 vox.petOut.nxn = [simSize simSize vox.pet.nxn(3)];
 vox.petOut.fov = vox.petOut.nxn.*vox.petOut.xyz;
 vox.petOut.rtz = [ 2*ceil(norm( vox.petOut.nxn(1:2) - floor(( vox.petOut.nxn(1:2)-1 )/2)-1)) + 3 ...
-    tanBin vox.pet.nxn(3) ];
+                   tanBin vox.pet.nxn(3) ];
+vox.petOut.sup = 0;
+for i = 1:vox.petOut.nxn(3)
+    tmpPTmask = imresize(PT(:,:,i),[ vox.petOut.nxn(1:2) ],'nearest');
+    tmpPTmask(tmpPTmask < 0.1) = 0;
+    tmpPTmask(tmpPTmask > 0) = 1;
+    vox.petOut.sup = vox.petOut.sup + numel(nonzeros(tmpPTmask));
+end
 
 %% Build Tumors
 % Builds Tumors, gets relevant PET/CT data, and matches CT to PET
-[tumorPT,tumorCT,rtsPT,rtsCT,zSlices] = getTumor(PT,PTscanNum_old,CT,vox,minRegionSize);
+if USE_CONTOUR 
+    [tumorPT,tumorCT,rtsPT,rtsCT,zSlices] = getTumor(PT,PTscanNum_old,CT,vox,minRegionSize);
+else
+    [tumorPT,tumorCT,rtsPT,rtsCT,zSlices] = ...
+        getTumorRand(PT,PTscanNum_old,CT,vox,minRegionSize);
+end
 vox.petSim.nxn(3) = length(zSlices); vox.petOut.nxn(3) = length(zSlices);
 vox.petSim.rtz(3) = length(zSlices); vox.petOut.rtz(3) = length(zSlices);
 
@@ -233,7 +257,7 @@ for i = 1:nREP
         OSpsf(:,:,:,:,i) = repmat(initPT,1,1,1,iterNUM) + subPT;
     end
     
-    [counts.total counts.true counts.scatter counts.randoms]/1E6
+    [counts.total counts.true counts.scatter counts.randoms]/1E6;
     
 end
 
@@ -275,5 +299,4 @@ else
 end
 
 return
-%% External stopping rule
-% future work...
+%% 

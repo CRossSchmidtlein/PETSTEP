@@ -39,7 +39,8 @@ function [refPT,refCT] = addTumor(tumorPT,tumorCT,maskPT,maskCT,rtsPT,rtsCT,maxS
 % along with CERR.  If not, see <http://www.gnu.org/licenses/>.%
 %
 %% Add Tumor
-
+maxSUV = max(tumorPT(:));
+%maxTRAST = max(tumorCT(:));
 mu_water_511keV = 0.096;
 mu_bone_511keV  = 0.172;
 mu_water_80keV = 0.184;
